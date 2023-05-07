@@ -102,81 +102,6 @@ ui <- fluidPage(
   )
 )
 
-
-#shiny server
-server <- function(input, output, session) {
-
-  #create slider input depending on data frequency
-  observe({
-
-    allDates <- unique(nisData$Date_reported)
-    eligibleDates <- allDates[xts::endpoints(allDates, on = "years")]
-
-    stepSize <- 5
-
-    output$dateUI <- renderUI({
-      sliderInput("dateSel", "Date",
-        min = min(eligibleDates),
-        max = max(eligibleDates),
-        value = min(eligibleDates),
-        step = stepSize,
-        timeFormat = "%y-%m-%d",
-        animate = animationOptions(interval = 1, loop = TRUE)
-      )
-    })
-
-    # define colorpalette for chart legend
-    #paletteBins <- seq(1, max(nisData$present), by = 2)
-    #colorPalette <- colorBin(palette = "YlOrBr", domain = nisData$present, na.color = "transparent", bins = paletteBins)
-
-  })
-
-  #filter data depending on selected date
-  filteredData <- reactive({
-    req(input$dateSel)
-    nisData[nisData$Date_reported == make_date(year = year(input$dateSel)) & nisData$Species == input$species, ]
-  })
-
-  #create the base leaflet map
-  output$map <- renderLeaflet({
-
-    leaflet(msfd) %>%
-      addProviderTiles(providers$Esri.WorldImagery,
-        options = providerTileOptions(opacity = 0.5)
-      ) %>%
-      setView(lat = 50, lng = -6, zoom = 4) %>%
-
-      addPolygons(
-        layerId = ~Id,
-        fillColor = "lightgray",
-        stroke = TRUE,
-        fillOpacity = 1,
-        color = "white",
-        weight = 1
-      ) %>%
-
-      #need to specify the leaflet::addLegend function here to avoid ambiguity with the xts::addLegend function
-      leaflet::addLegend(pal = colorPalette, values = nisData$present, opacity = 0.9, title = "Years since present", position = "bottomleft")
-
-  })
-
-
-  #prepare data depending on selected date and draw either markers or update polygons depending on the selected map type
-  observe({
-
-    msfd$Cases <- filteredData()$present[match(msfd$Id, filteredData()$subregion.code)]
-
-    msfd@data$LabelText <- paste0(
-      "<b>Subregion:</b> ", msfd@data$name,"<br>",
-      "<b>Present:</b> ", format(msfd@data$Cases, nsmall=0, big.mark=","))
-
-    leafletProxy("map", data = msfd) %>%
-        clearMarkers() %>%
-        setShapeStyle(layerId = ~Id, fillColor = ~ifelse(Cases > 0, colorPalette(Cases), "lightgray"), label = msfd$LabelText)
-  })
-}
-
-
 #shiny UI
 ui <- fluidPage(
   leafletjs,
@@ -246,14 +171,16 @@ server <- function(input, output, session) {
     colorPalette <- colorBin(palette = "YlOrBr", domain = nisData$present[nisData$Species == input$species], na.color = "transparent", bins = paletteBins)
 
     leaflet(msfd) %>%
-      addTiles()  %>%
+      addProviderTiles(providers$Esri.WorldImagery,
+        options = providerTileOptions(opacity = 0.5)
+      ) %>%
       setView(lat = 50, lng = -6, zoom = 4) %>%
 
       addPolygons(
         layerId = ~Id,
         fillColor = "lightgray",
         stroke = TRUE,
-        fillOpacity = 1,
+        fillOpacity = .5,
         color = "white",
         weight = 1
       ) %>%
@@ -274,8 +201,13 @@ server <- function(input, output, session) {
       "<b>Present:</b> ", format(msfd@data$Cases, nsmall=0, big.mark=","))
 
     leafletProxy("map", data = msfd) %>%
-        clearMarkers() %>%
-        setShapeStyle(layerId = ~Id, fillColor = ~ifelse(Cases > 0, colorPalette(Cases), "lightgray"), label = msfd$LabelText)
+      clearMarkers() %>%
+      setShapeStyle(
+        layerId = ~Id,
+        fillColor = ~ ifelse(Cases > 0, colorPalette(Cases), "lightgray"),
+        label = msfd$LabelText,
+        fillOpacity = ~ ifelse(Cases > 0, 1, 0.5)
+      )
   })
 }
 
