@@ -178,10 +178,10 @@ server <- function(input, output, session) {
 
       addPolygons(
         layerId = ~Id,
-        fillColor = "lightgray",
+        fillColor = "lightgrey",
         stroke = TRUE,
-        fillOpacity = .5,
-        color = "white",
+        fillOpacity = 1,
+        color = "#2e2d2d",
         weight = 1
       ) %>%
 
@@ -204,9 +204,9 @@ server <- function(input, output, session) {
       clearMarkers() %>%
       setShapeStyle(
         layerId = ~Id,
-        fillColor = ~ ifelse(Cases > 0, colorPalette(Cases), "lightgray"),
-        label = msfd$LabelText,
-        fillOpacity = ~ ifelse(Cases > 0, 1, 0.5)
+        fillColor = ~ifelse(!is.na(Cases), colorPalette(Cases), "transparent"),
+        color = "#2e2d2d",
+        label = msfd$LabelText
       )
   })
 }
