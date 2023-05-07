@@ -141,7 +141,9 @@ server <- function(input, output, session) {
   output$map <- renderLeaflet({
 
     leaflet(msfd) %>%
-      addTiles()  %>%
+      addProviderTiles(providers$Esri.WorldImagery,
+        options = providerTileOptions(opacity = 0.5)
+      ) %>%
       setView(lat = 50, lng = -6, zoom = 4) %>%
 
       addPolygons(
