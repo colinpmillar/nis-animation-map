@@ -60,13 +60,11 @@ nisData <- read.csv("data/nis/nis_totals.csv")
 nisData$Date_reported <- as.Date(nisData$date)
 
 speciesList <- unique(nisData$Species)
-
-names(speciesList) <- speciesList
+names(speciesList) <- sapply(strsplit(speciesList, " "), function(x) paste(x[1:2], collapse = " "))
 
 #select a certain date and species
 selectedData <- nisData[nisData$Date_reported == min(nisData$Date_reported), ]
 selectedData <- selectedData[selectedData$Species == selectedData$Species[1], ]
-
 
 #match cases and spatial data via Id/Country Code
 msfd$Cases <- selectedData$present[match(msfd$Id, selectedData$subregion.code)]
@@ -76,34 +74,39 @@ msfd@data$LabelText <- paste0(
   "<b>Subregion:</b> ", msfd@data$name,"<br>",
   "<b>Present:</b> ", format(msfd@data$Cases, nsmall=0, big.mark=","))
 
+# define colorpalette for chart legend
+paletteBins <- seq(1, 50, by = 5)
+colorPalette <- colorBin(palette = "YlOrBr", domain = nisData$present, na.color = "transparent", bins = paletteBins)
+
+
 #shiny UI
 ui <- fluidPage(
   leafletjs,
   titlePanel("NIS Presence Development"),
 
-  sidebarPanel(width = 2,
+  sidebarPanel(
+    width = 2,
 
-               selectInput(inputId = "species",
-                           label = "Species:",
-                           choices = speciesList,
-                           selected = 1),
+    selectInput(
+      inputId = "species",
+      label = "Species:",
+      choices = speciesList,
+      selected = 1
+    ),
 
+    radioButtons(
+      inputId = "frequency",
+      label = "Select Data Frequency",
+      choices = c("years"),
+      selected = "years",
+      inline = TRUE
+    ),
 
-               radioButtons(inputId = "frequency",
-                            label = "Select Data Frequency",
-                            choices = c("years"),
-                            selected = "years",
-                            inline = TRUE
-               ),
-
-               uiOutput("dateUI")
-
+    uiOutput("dateUI")
   ),
 
   mainPanel(width = 10,
-
-            leafletOutput("map", width = "70%", height = "750px")
-
+    leafletOutput("map", width = "70%", height = "750px")
   )
 )
 
@@ -131,8 +134,8 @@ server <- function(input, output, session) {
     })
 
     # define colorpalette for chart legend
-    paletteBins <- seq(1, max(nisData$present), by = 2)
-    colorPalette <- colorBin(palette = "YlOrBr", domain = nisData$present, na.color = "transparent", bins = paletteBins)
+    #paletteBins <- seq(1, max(nisData$present), by = 2)
+    #colorPalette <- colorBin(palette = "YlOrBr", domain = nisData$present, na.color = "transparent", bins = paletteBins)
 
   })
 
@@ -194,14 +197,6 @@ ui <- fluidPage(
       selected = 1
     ),
 
-    radioButtons(
-      inputId = "frequency",
-      label = "Select Data Frequency",
-      choices = c("years"),
-      selected = "years",
-      inline = TRUE
-    ),
-
     uiOutput("dateUI")
   ),
 
@@ -217,7 +212,7 @@ server <- function(input, output, session) {
   #create slider input depending on data frequency
   observe({
 
-    allDates <- unique(nisData$Date_reported)
+    allDates <- unique(nisData$Date_reported[nisData$Species == input$species])
     eligibleDates <- allDates[xts::endpoints(allDates, on = input$frequency)]
 
     stepSize <- 5
@@ -228,14 +223,10 @@ server <- function(input, output, session) {
         max = max(eligibleDates),
         value = min(eligibleDates),
         step = stepSize,
-        timeFormat = "%y-%m-%d",
-        animate = animationOptions(interval = 1, loop = TRUE)
+        timeFormat = "%Y",
+        animate = animationOptions(interval = 1, loop = FALSE)
       )
     })
-
-    # define colorpalette for chart legend
-    paletteBins <- seq(1, max(nisData$present), by = 2)
-    colorPalette <- colorBin(palette = "YlOrBr", domain = nisData$present, na.color = "transparent", bins = paletteBins)
 
   })
 
@@ -247,6 +238,10 @@ server <- function(input, output, session) {
 
   #create the base leaflet map
   output$map <- renderLeaflet({
+
+    # define colorpalette for chart legend
+    paletteBins <- seq(1, max(nisData$present[nisData$Species == input$species], na.rm = TRUE), by = 2)
+    colorPalette <- colorBin(palette = "YlOrBr", domain = nisData$present[nisData$Species == input$species], na.color = "transparent", bins = paletteBins)
 
     leaflet(msfd) %>%
       addTiles()  %>%
@@ -262,7 +257,7 @@ server <- function(input, output, session) {
       ) %>%
 
       #need to specify the leaflet::addLegend function here to avoid ambiguity with the xts::addLegend function
-      leaflet::addLegend(pal = colorPalette, values = nisData$present, opacity = 0.9, title = "Years since present", position = "bottomleft")
+      leaflet::addLegend(pal = colorPalette, values = nisData$present[nisData$Species == input$species], opacity = 0.9, title = "Years present", position = "bottomleft")
 
   })
 
