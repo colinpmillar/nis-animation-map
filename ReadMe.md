@@ -4,6 +4,7 @@ to run this code, download, open R and set the working directory to the root fol
 
 ```r
 install.packages("icesTAF")
+library(icesTAF)
 install.deps()
 
 # get data
