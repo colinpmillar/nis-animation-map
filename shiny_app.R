@@ -94,14 +94,6 @@ ui <- fluidPage(
       selected = 1
     ),
 
-    radioButtons(
-      inputId = "frequency",
-      label = "Select Data Frequency",
-      choices = c("years"),
-      selected = "years",
-      inline = TRUE
-    ),
-
     uiOutput("dateUI")
   ),
 
@@ -118,7 +110,7 @@ server <- function(input, output, session) {
   observe({
 
     allDates <- unique(nisData$Date_reported)
-    eligibleDates <- allDates[xts::endpoints(allDates, on = input$frequency)]
+    eligibleDates <- allDates[xts::endpoints(allDates, on = "years")]
 
     stepSize <- 5
 
@@ -197,6 +189,14 @@ ui <- fluidPage(
       selected = 1
     ),
 
+    radioButtons(
+      inputId = "frequency",
+      label = "Select Data Frequency",
+      choices = c("years"),
+      selected = "years",
+      inline = TRUE
+    ),
+
     uiOutput("dateUI")
   ),
 
@@ -213,7 +213,7 @@ server <- function(input, output, session) {
   observe({
 
     allDates <- unique(nisData$Date_reported[nisData$Species == input$species])
-    eligibleDates <- allDates[xts::endpoints(allDates, on = input$frequency)]
+    eligibleDates <- allDates[xts::endpoints(allDates, on = "years")]
 
     stepSize <- 5
 
