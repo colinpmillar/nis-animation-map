@@ -33,7 +33,7 @@ msfd <-
 # transform to 4326
 msfd <- st_transform(msfd, 4326)
 
-# add midpoints for circles if we want them
+# add subregion midpoints for circles if we want them
 msfd_midpoint <- sf::st_coordinates(sf::st_centroid(msfd))
 
 msfd$LON <- msfd_midpoint[,"X"]
