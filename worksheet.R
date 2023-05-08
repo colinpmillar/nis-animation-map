@@ -10,7 +10,7 @@ nis <- read.csv("NIS_msfd_coord.csv", encoding= "UTF-8") %>%
 
 nis$Year[nis$Year == "2016-2017"] <- "2016"
 
-# calcylate totals shapefile
+# calculate totals shapefile
 
 nis_totals <-
   nis %>%
